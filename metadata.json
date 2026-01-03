@@ -1,0 +1,5 @@
+{
+  "name": "Recipe Migrator AI",
+  "description": "A tool to digitize recipe files (images, PDFs) using Gemini AI and prepare them for Tandoor Recipes import.",
+  "requestFramePermissions": []
+}
