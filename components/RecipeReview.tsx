@@ -41,8 +41,27 @@ export const RecipeReview: React.FC<RecipeReviewProps> = ({ recipe, onSave, onCa
   const addStep = () => {
     setData(prev => ({
       ...prev,
-      steps: [...prev.steps, { instruction: '' }]
+      steps: [...(prev.steps || []), { instruction: '' }]
     }));
+  };
+
+  const handleKeywordChange = (index: number, value: string) => {
+    const newKeywords = [...(data.keywords || [])];
+    newKeywords[index] = value;
+    setData(prev => ({ ...prev, keywords: newKeywords }));
+  };
+
+  const addKeyword = () => {
+    setData(prev => ({
+      ...prev,
+      keywords: [...(prev.keywords || []), '']
+    }));
+  };
+
+  const removeKeyword = (index: number) => {
+      const newKeywords = [...(data.keywords || [])];
+      newKeywords.splice(index, 1);
+      setData(prev => ({ ...prev, keywords: newKeywords }));
   };
 
   return (
@@ -114,6 +133,31 @@ export const RecipeReview: React.FC<RecipeReviewProps> = ({ recipe, onSave, onCa
               onChange={(e) => handleChange('cook_time_minutes', parseInt(e.target.value) || 0)} 
             />
           </div>
+        </div>
+
+        <div className="border-t border-slate-700 pt-4">
+            <label className="block text-lg font-semibold text-slate-200 mb-2">Keywords</label>
+            <div className="flex flex-wrap gap-2">
+                {(data.keywords || []).map((keyword, i) => (
+                    <div key={i} className="flex items-center bg-slate-900 border border-slate-700 rounded px-2 py-1">
+                        <input
+                            className="bg-transparent text-sm text-white outline-none w-24"
+                            value={keyword}
+                            onChange={(e) => handleKeywordChange(i, e.target.value)}
+                            placeholder="Tag"
+                        />
+                         <button onClick={() => removeKeyword(i)} className="text-slate-500 hover:text-red-400 ml-1">
+                             ×
+                         </button>
+                    </div>
+                ))}
+                <button
+                    onClick={addKeyword}
+                    className="px-3 py-1 text-sm border border-dashed border-slate-600 rounded text-slate-400 hover:text-white hover:border-slate-400"
+                >
+                    + Tag
+                </button>
+            </div>
         </div>
 
         <div className="border-t border-slate-700 pt-4">

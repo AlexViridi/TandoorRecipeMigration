@@ -163,13 +163,13 @@ const App = () => {
       const payload = {
           name: recipe.name,
           description: recipe.description,
-          steps: recipe.steps.map(s => ({ instruction: s.instruction })),
+          steps: (recipe.steps || []).map(s => ({ instruction: s.instruction })),
           servings: recipe.servings,
           working_time: recipe.prep_time_minutes,
           waiting_time: recipe.cook_time_minutes,
-          keywords: recipe.keywords.map(k => ({ name: k })),
+          keywords: (recipe.keywords || []).map(k => ({ name: k })),
           // Ingredients are tricky without IDs. We send them as objects and hope for auto-creation or manual fix later
-          ingredients: recipe.ingredients.map(ing => ({
+          ingredients: (recipe.ingredients || []).map(ing => ({
               amount: parseFloat(ing.amount) || 0,
               unit: { name: ing.unit },
               food: { name: ing.name },
