@@ -180,6 +180,9 @@ const App = () => {
       try {
           // Normalize URL
           const baseUrl = tandoorConfig.url.replace(/\/$/, '');
+          console.log(`Attempting to upload recipe to: ${baseUrl}/api/recipe/recipes/`);
+          console.log('Payload:', payload);
+          
           const response = await fetch(`${baseUrl}/api/recipe/recipes/`, {
               method: 'POST',
               headers: {
@@ -189,16 +192,21 @@ const App = () => {
               body: JSON.stringify(payload)
           });
 
+          console.log('Tandoor response status:', response.status);
+
           if (response.ok) {
+              const responseData = await response.json();
+              console.log('Upload success:', responseData);
               alert("Successfully uploaded to Tandoor!");
           } else {
               const err = await response.text();
-              console.error(err);
-              alert("Failed to upload. Check console for details. Tandoor API might require pre-existing Food IDs.");
+              console.error('Tandoor upload failed. Status:', response.status);
+              console.error('Error details:', err);
+              alert(`Failed to upload (Status ${response.status}). Check console for details. Tandoor API might require pre-existing Food IDs.`);
           }
       } catch (e) {
-          console.error(e);
-          alert("Network error connecting to Tandoor.");
+          console.error('Exception during Tandoor upload:', e);
+          alert("Network error connecting to Tandoor. Check console for details.");
       }
   };
 
