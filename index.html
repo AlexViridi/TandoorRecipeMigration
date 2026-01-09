@@ -12,7 +12,8 @@
     <!-- Runtime Environment Injection Shim -->
     <script>
       window.ENV = {
-        API_KEY: "RUNTIME_API_KEY_PLACEHOLDER"
+        API_KEY: "RUNTIME_API_KEY_PLACEHOLDER",
+        TANDOOR_API_KEY: "RUNTIME_TANDOOR_API_KEY_PLACEHOLDER"
       };
       // Polyfill simple process.env access if define replacement misses anything
       window.process = { env: window.ENV };

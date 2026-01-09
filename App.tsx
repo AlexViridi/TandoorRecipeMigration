@@ -4,12 +4,11 @@ import { extractRecipeFromImage } from './services/geminiService';
 import { FileItem, ProcessStatus, Recipe } from './types';
 import { RecipeReview } from './components/RecipeReview';
 
+
 const App = () => {
   const [files, setFiles] = useState<FileItem[]>([]);
   const [activeFileId, setActiveFileId] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [tandoorConfig, setTandoorConfig] = useState({ url: '', apiKey: '' });
-  const [showConfig, setShowConfig] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Helper to read file as base64
@@ -150,44 +149,82 @@ const App = () => {
     setActiveFileId(null);
   };
 
+  const testTandoorConnection = async () => {
+      // Create a mock recipe for testing
+      const testRecipe: Recipe = {
+          name: "Test Recipe - Chocolate Chip Cookies",
+          description: "A simple test recipe to verify Tandoor integration is working correctly.",
+          servings: 24,
+          prep_time_minutes: 15,
+          cook_time_minutes: 12,
+          ingredients: [
+              { amount: "2.25", unit: "cups", name: "all-purpose flour", note: "" },
+              { amount: "1", unit: "tsp", name: "baking soda", note: "" },
+              { amount: "1", unit: "cup", name: "butter", note: "softened" },
+              { amount: "0.75", unit: "cup", name: "sugar", note: "" },
+              { amount: "2", unit: "cups", name: "chocolate chips", note: "" }
+          ],
+          steps: [
+              { instruction: "Preheat oven to 375°F (190°C)." },
+              { instruction: "Mix flour and baking soda in a bowl." },
+              { instruction: "Cream butter and sugar until fluffy." },
+              { instruction: "Combine wet and dry ingredients, then fold in chocolate chips." },
+              { instruction: "Drop spoonfuls onto baking sheet and bake for 10-12 minutes." }
+          ],
+          keywords: ["test", "cookies", "dessert"]
+      };
+
+      await uploadToTandoor(testRecipe);
+  };
+
   const uploadToTandoor = async (recipe: Recipe) => {
-      if (!tandoorConfig.url || !tandoorConfig.apiKey) {
-          alert("Please configure Tandoor URL and API Key in settings first.");
-          setShowConfig(true);
+      const tandoorApiKey = process.env.TANDOOR_API_KEY;
+
+      if (!tandoorApiKey) {
+          alert("Tandoor API Key not configured. Please set TANDOOR_API_KEY environment variable.");
           return;
       }
 
-      // Basic mapping for Tandoor API. 
-      // Note: Tandoor API is complex for ingredients (needs food IDs). 
+      // Basic mapping for Tandoor API.
+      // Note: Tandoor API is complex for ingredients (needs food IDs).
       // This payload attempts to create a recipe. Success depends on server config (if it allows creating foods/units on fly).
+
+      // Map ingredients to Tandoor format
+      const mappedIngredients = (recipe.ingredients || []).map(ing => ({
+          amount: parseFloat(ing.amount) || 0,
+          unit: { name: ing.unit },
+          food: { name: ing.name },
+          note: ing.note || ''
+      }));
+
+      // Create steps array
+      const steps = (recipe.steps || []).map((s, index) => ({
+          instruction: s.instruction,
+          // Put all ingredients in the first step (Tandoor expects ingredients inside steps, not at recipe level)
+          ingredients: index === 0 ? mappedIngredients : []
+      }));
+
       const payload = {
           name: recipe.name,
           description: recipe.description,
-          steps: (recipe.steps || []).map(s => ({ instruction: s.instruction })),
+          steps: steps,
           servings: recipe.servings,
           working_time: recipe.prep_time_minutes,
           waiting_time: recipe.cook_time_minutes,
-          keywords: (recipe.keywords || []).map(k => ({ name: k })),
-          // Ingredients are tricky without IDs. We send them as objects and hope for auto-creation or manual fix later
-          ingredients: (recipe.ingredients || []).map(ing => ({
-              amount: parseFloat(ing.amount) || 0,
-              unit: { name: ing.unit },
-              food: { name: ing.name },
-              note: ing.note || ''
-          }))
+          keywords: (recipe.keywords || []).map(k => ({ name: k }))
       };
 
       try {
-          // Normalize URL
-          const baseUrl = tandoorConfig.url.replace(/\/$/, '');
-          console.log(`Attempting to upload recipe to: ${baseUrl}/api/recipe/recipes/`);
+          // Use nginx proxy endpoint to avoid CORS
+          const baseUrl = '/tandoor-api';
+          console.log(`Attempting to upload recipe to: ${baseUrl}/api/recipe/`);
           console.log('Payload:', payload);
-          
-          const response = await fetch(`${baseUrl}/api/recipe/recipes/`, {
+
+          const response = await fetch(`${baseUrl}/api/recipe/`, {
               method: 'POST',
               headers: {
                   'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${tandoorConfig.apiKey}`
+                  'Authorization': `Bearer ${tandoorApiKey}`
               },
               body: JSON.stringify(payload)
           });
@@ -296,34 +333,17 @@ const App = () => {
                  <button onClick={handleDownloadAll} className="text-indigo-400 hover:text-indigo-300">Download All JSON</button>
             )}
           </div>
-          
-          <button 
-            onClick={() => setShowConfig(!showConfig)}
-            className="text-xs text-slate-400 hover:text-white flex items-center gap-1"
+
+          <button
+            onClick={testTandoorConnection}
+            className="w-full text-xs py-2 px-3 rounded font-medium transition-colors bg-indigo-600 hover:bg-indigo-500 text-white mb-2"
           >
-            ⚙️ Tandoor Settings
+            Test Tandoor Connection
           </button>
-          
-          {showConfig && (
-              <div className="mt-2 p-3 bg-slate-800 rounded border border-slate-600 space-y-2">
-                  <input 
-                    placeholder="https://your-tandoor-instance.com"
-                    className="w-full text-xs bg-slate-900 border border-slate-700 rounded p-1 text-white"
-                    value={tandoorConfig.url}
-                    onChange={e => setTandoorConfig(p => ({...p, url: e.target.value}))}
-                  />
-                  <input 
-                    placeholder="API Token"
-                    type="password"
-                    className="w-full text-xs bg-slate-900 border border-slate-700 rounded p-1 text-white"
-                    value={tandoorConfig.apiKey}
-                    onChange={e => setTandoorConfig(p => ({...p, apiKey: e.target.value}))}
-                  />
-                  <p className="text-[10px] text-slate-500">
-                      Requires Write Access. Tandoor API needs exact Food/Unit matches or strict mode off.
-                  </p>
-              </div>
-          )}
+
+          <p className="text-[10px] text-slate-500">
+            Tandoor URL and API Key configured via environment variables
+          </p>
 
         </div>
 
